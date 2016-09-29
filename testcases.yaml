@@ -1,0 +1,1000 @@
+# @author SATO Kentaro
+# @license BSD 2-Clause License
+
+- version: 1
+  revision: 1
+
+# 3.2 File Format Description
+- text: 'User-agent: crawler|Disallow: /no'
+  ua: crawler
+  expand:
+    - path: /no
+      allowed: false
+      message: Disallow rule exists
+    - path: /no/
+      allowed: false
+      message: Disallow rule exists 2
+    - path: /nothing
+      allowed: false
+      message: Disallow rule exists 3
+- text: 'User-agent: crawler|Disallow: /no/'
+  ua: crawler
+  expand:
+    - path: /no/
+      allowed: false
+      message: Disallow rule exists 4
+    - path: /no/file.html
+      allowed: false
+      message: Disallow rule exists 5
+    - path: /yes
+      allowed: true
+      message: Not disallowed
+- text: 'User-agent: crawler|Disallow: /no # comment'
+  ua: crawler
+  path: /no
+  allowed: false
+  message: Disallowed with inline comment
+- text: 'User-agent: crawler|Disallow: /no#comment'
+  path: /no
+  allowed: false
+  message: Disallowed with spaceless inline comment
+- text: 'User-agent: crawler|Disallow: /no#'
+  path: /no
+  allowed: false
+  message: Disallowed with spaceless inline comment 2
+
+# 3.2.1 The User-agent line
+- text: 'User-agent: crawler|Disallow: /no'
+  ua: Crawler
+  path: /no
+  allowed: false
+  message: User-agent names are case-insensitive
+- text: 'User-agent: crawler|Disallow: /no'
+  ua: crawlER
+  path: /no
+  allowed: false
+  message: User-agent names are case-insensitive 2
+
+- text: 'User-agent: *|Disallow: /that||User-agent: crawler|Disallow: /this'
+  ua: crawler
+  expand:
+    - path: /this
+      allowed: false
+      message: Ignore * if more suitable User-agent exists
+    - path: /that
+      allowed: true
+      message: Ignore * if more suitable User-agent exists
+
+- text: 'User-agent: crawler|Disallow: /this||User-agent: *|Disallow: /that'
+  ua: crawler2
+  path: /this
+  allowed: true
+  mayFail: true
+  message: User-agent is start-with matched
+  ifSuccess: _UserAgentExactMatch
+  ifFailed: UserAgentLeftMatch
+
+- text: 'User-agent: crawler|Disallow: /this||User-agent: *|Disallow: /that'
+  when: _UserAgentExactMatch
+  expand:
+    - ua: crawler2
+      path: /that
+      allowed: false
+      message: User-agent * should be read
+    - ua: rawler
+      path: /that
+      allowed: false
+      message: User-agent * 2 should be read
+    - ua: craw
+      path: /that
+      allowed: false
+      message: User-agent * 3 should be read
+
+- when: UserAgentLeftMatch
+  expand:
+    - text: 'User-agent: ler|Disallow: /yes||User-agent: *|Disallow: /no'
+      ua: crawler
+      path: /yes
+      allowed: true
+      message: User-agent should not be partial-matched
+    - text: 'User-agent: crawl|Disallow: /yes||User-agent: crawler|Disallow: /no'
+      ua: crawler
+      path: /yes
+      allowed: true
+      message: The most matching record should be used
+    - text: 'User-agent: Robot|Disallow: /this||User-agent: *|Disallow: /that'
+      ua: bot
+      path: /this
+      allowed: true
+      message: Rules for Robot should not be referenced for bot
+    - text: 'User-agent: Robot|Disallow: /this||User-agent: *|Disallow: /that'
+      ua: bot
+      path: /that
+      allowed: false
+      message: Rules for Robot should not be referenced for bot 2
+    - text: 'User-agent: crawler|Disallow: /this||User-agent: *|Disallow: /that'
+      ua: craw
+      path: /this
+      allowed: true
+      message: Rules for crawler should not be referenced for craw
+    - text: 'User-agent: crawler|Disallow: /this||User-agent: *|Disallow: /that'
+      ua: craw
+      path: /that
+      allowed: false
+      message: Rules for crawler should not be referenced for craw 2
+
+- text: 'User-agent: crawler|Disallow: /crawler||User-agent: *|Disallow: /other'
+  ua: crawler
+  path: /crawler
+  allowed: false
+  message: Exact User-agent 2
+- text: 'User-agent: crawler|Disallow: /crawler||User-agent: *|Disallow: /other'
+  ua: crawler
+  path: /other
+  allowed: true
+  message: Ignore * if more suitable User-agent exists 2
+- text: 'User-agent: crawler|Disallow: /no'
+  ua: bot
+  path: /no
+  allowed: true
+  message: Allowed by default if no match
+- text: ''
+  ua: bot
+  path: /no
+  allowed: true
+  message: Allowed by default if empty
+- text: 'User-agent: crawler|Disallow:||User-agent: *|Disallow: /'
+  ua: crawler
+  path: /no
+  allowed: true
+  message: Allowed for crawler
+
+# 3.2.2 The Allow and Disallow lines
+- text: 'User-agent: *|Allow: /dir|Disallow: /'
+  ua: crawler
+  path: /nodir
+  allowed: false
+  message: Should be disallowed
+
+- text: 'User-agent: *|Allow: /dir|Disallow: /'
+  ua: crawler
+  path: /dir
+  allowed: true
+  mayFail: true
+  message: "Allow is not supported"
+  ifSuccess: _Allow
+  ifFailed: IgnoreAllow
+
+- text: 'User-agent: *|Disallow: /|Allow: /yes|Disallow: /yes/no'
+  ua: crawler
+  path: /dir
+  allowed: false
+  message: Should be disallowed anyway
+  when: _Allow
+
+- text: 'User-agent: *|Disallow: /|Allow: /yes|Disallow: /yes/no'
+  ua: crawler
+  path: /yes
+  allowed: false
+  mayFail: true
+  message: Ordering of the rules is not respected
+  ifFailed: _IgnoreRuleOrder
+  when: _Allow
+
+- text: 'User-agent: *|Disallow: /|Allow: /yes|Disallow: /yes/no'
+  ua: crawler
+  path: /yes/no
+  allowed: false
+  message: Longer path rule is evaluated earlier then shorter one
+  ifSuccess: LongerPathFirst
+  when: _IgnoreRuleOrder
+
+- text: 'User-agent: *|Disallow: /tmp'
+  ua: any
+  path: /tmp
+  allowed: false
+  message: Percent encoding, exact match
+- text: 'User-agent: *|Disallow: /tmp'
+  path: /tmp.html
+  allowed: false
+  message: Percent encoding, partial match
+- text: 'User-agent: *|Disallow: /tmp'
+  path: /tmp/a.html
+  allowed: false
+  message: Percent encoding, directory match
+- text: 'User-agent: *|Disallow: /tmp/'
+  path: /tmp
+  allowed: true
+  message: Percent encoding, partial mismatch
+- text: 'User-agent: *|Disallow: /tmp/'
+  path: /tmp/
+  allowed: false
+  message: Percent encoding, exact directory match
+- text: 'User-agent: *|Disallow: /tmp/'
+  path: /tmp/a.html
+  allowed: false
+  message: Percent encoding, directory match 2
+- text: 'User-agent: *|Disallow: /a%3cd.html'
+  path: /a%3cd.html
+  allowed: false
+  message: Percent encoding, encoded
+- text: 'User-agent: *|Disallow: /a%3Cd.html'
+  path: /a%3cd.html
+  allowed: false
+  message: Percent encoding, rule uppercased
+- text: 'User-agent: *|Disallow: /a%3cd.html'
+  path: /a%3Cd.html
+  allowed: false
+  message: Percent encoding, path uppercased
+- text: 'User-agent: *|Disallow: /a%3Cd.html'
+  path: /a%3Cd.html
+  allowed: false
+  message: Percent encoding, both uppercased
+- text: 'User-agent: *|Disallow: /a%2fb.html'
+  path: /a%2fb.html
+  allowed: false
+  message: Percent encoding, slash encoded
+- text: 'User-agent: *|Disallow: /a%2fb.html'
+  path: /a/b.html
+  allowed: true
+  message: Percent encoding, rule slash encoded
+- text: 'User-agent: *|Disallow: /a/b.html'
+  path: /a%2fb.html
+  allowed: true
+  message: Percent encoding, path slash encoded
+- text: 'User-agent: *|Disallow: /a/b.html'
+  path: /a/b.html
+  allowed: false
+  message: Percent encoding, normal slash
+- text: 'User-agent: *|Disallow: /%7ejoe/index.html'
+  path: /~joe/index.html
+  allowed: false
+  message: Percent encoding, rule tilde encoded
+  ifSuccess: _PercentEncoding
+- text: 'User-agent: *|Disallow: /~joe/index.html'
+  path: /%7Ejoe/index.html
+  allowed: false
+  message: Percent encoding, path tilde encoded
+- text: 'User-agent: *|Disallow: /%61.html'
+  path: /a.html
+  allowed: false
+  message: Percent encoding, rule alpha
+- text: 'User-agent: *|Disallow: /%61.html'
+  path: /%61.html
+  allowed: false
+  message: Percent encoding, path alpha
+- text: 'User-agent: *|Disallow: /a.html'
+  path: /%61.html
+  allowed: false
+  message: Percent encoding, both alpha
+
+# 3.3 Formal Syntax
+- text: 'User-agent: a|User-agent: b|Disallow: /no'
+  expand:
+    - ua: a
+      path: /no
+      allowed: false
+      message: Multiple User-agents in a record
+    - ua: b
+      path: /no
+      allowed: false
+      message: Multiple User-agents in a record 2
+    - ua: c
+      path: /no
+      allowed: true
+      message: Multiple User-agents in a record 3
+
+- text: 'User-agent: a|#comment|User-agent: b|#comment2|Disallow: /no'
+  ua: a
+  path: /no
+  allowed: false
+  message: User-agents can have comments in between
+- ua: b
+  path: /no
+  allowed: false
+  message: User-agents can have comments in between
+
+- text: 'User-agent: *|X-Number: 30|Disallow: /no'
+  ua: any
+  path: /no
+  allowed: false
+  message: Unknown rule should be skipped
+- text: 'User-agent:crawler|Disallow: /no'
+  ua: crawler
+  path: /no
+  allowed: false
+  message: Spaceless definition is valid
+- text: 'User-agent: crawler|Disallow:/no'
+  path: /no
+  allowed: false
+  message: Spaceless definition is valid 2
+- text: 'User-agent:crawler|Disallow:/no'
+  path: /no
+  allowed: false
+  message: Spaceless definition is valid 3
+- text: 'User-agent:    crawler|Disallow:    /no'
+  path: /no
+  allowed: false
+  message: Definition with multiple spaces is vaild
+- text: "User-agent: \tcrawler|Disallow: \t/no"
+  path: /no
+  allowed: false
+  message: Definition with tabs as spacing is vaild
+- text: '#comment|User-agent: crawler|Disallow: /no'
+  path: /no
+  allowed: false
+  message: Records can have leading comment
+- text: 'User-agent: *|# comment|Disallow: /no'
+  ua: any
+  path: /no
+  allowed: false
+  message: Comment before rules
+- text: 'User-agent: *|   #comment|Disallow: /no'
+  path: /no
+  allowed: false
+  message: Comment before rules 2
+
+- text: 'User-agent: crawler |Disallow: /no'
+  ua: crawler
+  path: /no
+  allowed: true
+  mayFail: true
+  message: Handling of trailing spaces in User-agent
+  ifSuccess: KeepUserAgentTrailingSpaces # correct behavior according to robotstxt.org ID / Google
+  ifFailed: IgnoreUserAgentTrailingSpaces # permit author's mistake
+- text: 'User-agent: crawler #comment|Disallow: /no'
+  ua: crawler
+  path: /no
+  allowed: false
+  message: Comment removes leading spaces
+  when: KeepUserAgentTrailingSpaces
+- text: 'User-agent: crawler |Disallow: /no'
+  ua: 'crawler '
+  path: /no
+  allowed: false
+  message: Consistent behavior of trailing spaces in User-agent is required
+  when: KeepUserAgentTrailingSpaces
+- text: 'User-agent: %63%72%61%77%6c%65%72|Disallow: /no'
+  ua: crawler
+  path: /no
+  allowed: true
+  ifFailed: PeDecodeUserAgent
+  when: _PercentEncoding
+
+# extensions
+
+- text: "User-agent \t: \ta|Disallow \t: \t/no"
+  ua: a
+  path: /no
+  allowed: true
+  mayFail: true
+  message: Allow spaces between directive and colon
+  ifFailed: AcceptSpaceBeforeColon # Google extension
+- text: "User-agent\x0d\x0a\t :\x0d\x0a\t *\x0d\x0aDisallow\x0d\x0a \t:\x0d\x0a \t/no"
+  ua: any
+  path: /no
+  allowed: false
+  mayFail: true
+  message: Can parse LWS (line continuation by indenting)
+  ifSuccess: AcceptLwsCrlf # Google extension
+  when: AcceptSpaceBeforeColon
+- text: "User-agent\x0a\t :\x0a\t *\x0aDisallow\x0a \t:\x0a \t/no"
+  ua: any
+  path: /no
+  allowed: false
+  mayFail: true
+  message: Can parse LWS (line continuation by indenting) in LF EOL
+  ifSuccess: _AcceptLwsLf
+  when: AcceptSpaceBeforeColon
+- text: "User-agent\x0d\t :\x0d\t *\x0dDisallow\x0d \t:\x0d \t/no"
+  ua: any
+  path: /no
+  allowed: false
+  mayFail: true
+  message: Can parse LWS (line continuation by indenting) in CR EOL
+  ifSuccess: _AcceptLwsCr
+  when: AcceptSpaceBeforeColon
+- always: true
+  when: [AcceptLwsCrlf, _AcceptLwsLf, _AcceptLwsCr]
+  message: Can parse LWS in LF/CR/CRLF
+  ifSuccess: AcceptLws
+  # Google haven't defined LWS using LF or CR
+- text: "User-agent\x0d\x0a :\x0d\x0a *\x0d\x0a \tDisallow\x0d\x0a \t:\x0d\x0a \t/no"
+  ua: any
+  path: /no
+  allowed: false
+  message: Misinterpreted LWS
+  when: AcceptLwsCrlf
+- text: "User-agent\x0d\x0a\t :\x0d\x0a\t bot\x0d\x0aDisallow\x0d\x0a \t: #||User-agent: *|Disallow: /"
+  ua: bot
+  path: /
+  allowed: true
+  message: Misinterpreted LWS
+  when: AcceptLwsCrlf
+
+- text: 'User-agent: a|Disallow: /no||Disallow: /yes'
+  ua: a
+  path: /yes
+  allowed: true
+  mayFail: true
+  message: Ignore blank lines
+  ifSuccess: _RespectRecordSeparator
+  ifFailed: IgnoreRecordSeparator
+
+- text: 'User-agent: a||Disallow: /yes'
+  ua: a
+  path: /yes
+  allowed: true
+  mayFail: true
+  ifFailed: IgnoreRecordSeparatorIfNoRule
+  when: _RespectRecordSeparator
+
+- text: 'User-agent: a|Disallow: /no|User-agent: b|Disallow: /yes'
+  ua: a
+  path: /yes
+  allowed: false
+  mayFail: true
+  message: Handling of records without blank line
+  ifSuccess: IgnoreMiddleUserAgent
+  ifFailed: ComplementRecordSeparator
+- ua: b
+  path: /no
+  allowed: true
+  message: Better to ignore User-agent in the middle or split the record
+  when: IgnoreMiddleUserAgent
+- ua: b
+  path: /yes
+  allowed: false
+  message: Better to ignore User-agent in the middle or split the record
+  when: ComplementRecordSeparator
+
+- text: "User-agent: *\x0aDisallow: /no"
+  ua: crawler
+  path: /no
+  allowed: false
+  mayFail: true
+  message: Treat LF as a line separator
+  ifSuccess: LineLf
+- text: "User-agent: *\x0d\x0aDisallow: /no\x0d\x0a"
+  ua: crawler
+  path: /no
+  allowed: false
+  #mayFail: true # this is what robotstxt.org ID defined as a line separator
+  message: Treat sequence of CR LF as a line separator
+  ifSuccess: LineCrLf
+- text: "User-agent: *\x0dDisallow: /no"
+  ua: crawler
+  path: /no
+  allowed: false
+  mayFail: true
+  message: Treat CR as a line separator
+  ifSuccess: LineCr
+
+# TODO: test misidentification of newline, i.e. CRLF as CR LF (when: LineCr, _RespectRecordSeparator or _AcceptLwsCr)
+
+- text: 'User-agent: *|Disallow: /aB'
+  ua: any
+  expand:
+    - path: /ab
+      allowed: true
+      #mayFail: true
+      message: Treating path case-insensitive although RFC 7230 2.7.3 says case-sensitive
+      ifSuccess: _RespectPathCase
+      ifFailed: IgnorePathCase
+    - when: _RespectPathCase
+      expand:
+        - path: /Ab
+          allowed: true
+          message: Character case should not be ignored
+        - path: /aB
+          allowed: false
+          message: Character case should not be ignored
+        - path: /AB
+          allowed: true
+          message: Character case should not be ignored 2
+    - path: /Ab
+      allowed: true
+      message: Character case is expected to be ignored
+      when: IgnorePathCase
+    - path: /aB
+      allowed: true
+      message: Character case is expected to be ignored 2
+      when: IgnorePathCase
+
+    - when: [IgnorePathCase, _PercentEncoding]
+      expand:
+        - path: /AB
+          allowed: true
+          message: Character case is expected to be ignored 3
+        - text: 'User-agent: *|Disallow: /%61.html'
+          path: /A.html
+          allowed: false
+          message: Percent encoding, rule alpha ignore case
+        - text: 'User-agent: *|Disallow: /%41.html'
+          path: /a.html
+          allowed: false
+          message: Percent encoding, rule alpha ignore case 2
+        - text: 'User-agent: *|Disallow: /%61.html'
+          path: /%41.html
+          allowed: false
+          message: Percent encoding, path alpha ignore case
+        - text: 'User-agent: *|Disallow: /%41.html'
+          path: /%61.html
+          allowed: false
+          message: Percent encoding, path alpha ignore case 2
+        - text: 'User-agent: *|Disallow: /A.html'
+          path: /%61.html
+          allowed: false
+          message: Percent encoding, both alpha ignore case
+        - text: 'User-agent: *|Disallow: /a.html'
+          path: /%41.html
+          allowed: false
+          message: Percent encoding, both alpha ignore case 2
+
+- text: 'User-agent: crawler||User-agent: *|Disallow: /'
+  ua: crawler
+  path: /no
+  allowed: true
+  mayFail: true
+  message: Treatment of the User-agent only record with the following record
+  ifSuccess: KeepEmptyRecord # Record without ruleline is invalid for robotstxt.org ID
+  ifFailed: JoinEmptyRecord
+  when: _RespectRecordSeparator
+- text: 'User-agent: *|Disallow: /*.php'
+  path: /script.php
+  allowed: false
+  mayFail: true
+  message: "* is treated as a wildcard character"
+  ifSuccess: Wildcard
+- text: 'User-agent: *|Disallow: /*.php'
+  ua: any
+  path: /script.php?query
+  allowed: false
+  message: Wildcard match
+  when: Wildcard
+
+- text: 'User-agent: *|Disallow: /*.php$'
+  path: /script.php
+  allowed: false
+  mayFail: true
+  message: $ is treated as an end-of-path meta character
+  ifSuccess: WildcardDollar
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /*.php$$$$$$$$'
+  path: /script.php
+  allowed: false
+  mayFail: true
+  message: Treatment of multiple $'s as an end-of-path meta character
+  ifSuccess: WildcardDollarMultiple
+  ifFailed: WildcardDollarNoMultiple
+  when: WildcardDollar
+
+- text: 'User-agent: *|Disallow: /nobot.html$'
+  ua: any
+  path: /nobot.html?query
+  allowed: true
+  mayFail: true
+  message: Query string is ignored on end-of-path match
+  ifFailed: WildcardDollarIgnoreQuery
+  when: WildcardDollar
+- text: 'User-agent: *|Disallow: /nobot.html?*$'
+  ua: any
+  path: /nobot.html?query
+  allowed: false
+  message: Query string should not be ignored on end-of-path match if the path has query
+  when: WildcardDollarIgnoreQuery
+
+- text: 'User-agent: *|Disallow: /*.p??'
+  path: /script.php
+  allowed: false
+  mayFail: true
+  ifSuccess: BogusWildcardQuestion # this should be a crazy feature if ever exists as ? is used as path-query separator
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /*.p??'
+  ua: any
+  path: /script.p
+  allowed: true
+  message: Wildcard zero character unmatch
+  when: BogusWildcardQuestion
+
+- text: 'User-agent: *|Disallow: /*.php'
+  ua: any
+  path: /dir/dir2/script.php?query
+  allowed: false
+  mayFail: true
+  ifFailed: _LimitWildcardSlash
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /*.php'
+  ua: any
+  path: /dir%2fdir2%2Fscript.php?query
+  allowed: false
+  message: Wildcard for path with escaped slashes
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /**.php'
+  ua: any
+  path: /dir/dir2/script.php?query
+  allowed: false
+  ifSuccess: WildcardLimitSlash
+  when: _LimitWildcardSlash
+  message: Double asterisk to match path containing slash if single doesn't
+- text: 'User-agent: *|Disallow: *.php'
+  ua: any
+  path: /script.php
+  allowed: false
+  message: Wildcard can replace leading slash
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /*.php'
+  ua: any
+  path: /.php
+  allowed: false
+  message: Wildcard should match zero width string
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /*.php'
+  ua: any
+  path: /xxxphp
+  allowed: true
+  message: Dot should be treated as is
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /no*'
+  ua: any
+  path: /no
+  allowed: false
+  message: Trailing wildcard should be meaningless
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /no\*'
+  ua: any
+  path: /no\
+  allowed: false
+  message: Possible internal regex escaping error of *
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /no\*'
+  ua: any
+  path: /no*
+  allowed: true
+  message: Possible internal regex escaping error of *
+  when: Wildcard
+- when: Wildcard
+  expand:
+    - text: 'User-agent: *|Disallow: /****************************************.php'
+      ua: any
+      path: /12345678901234567890.php
+      allowed: false
+      message: Stressed pattern
+    - path: /123456789012345678901234
+      allowed: true
+      message: Stressed pattern 2
+    - text: 'User-agent: *|Disallow: /*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/*/no'
+      ua: any
+      path: /1/2/3/4/5/6/7/8/9/0/1/2/3/4/5/6/7/8/9/0/no
+      allowed: false
+      mayFail: true # for being too complex
+      message: Stressed pattern 3
+    - path: /1/2/3/4/5/6/7/8/9/0/1/2/3/4/5/6/7/8/9/0/yes
+      allowed: true
+      mayFail: true # for being too complex
+      message: Stressed pattern 4
+
+- _defs:
+    - &longRule !build ['/', !repeat ['**********', 100000]]
+    - &longPath !build ['/', !repeat ['1234567890', 100000]]
+    - &longText !build ['User-agent: *|Disallow: ', *longRule, '.php']
+  text: *longText
+  ua: crawler
+  path: *longPath
+  allowed: true
+  mayFail: true
+  ifSuccess: _WildcardCompress
+  when: Wildcard
+- text: *longText
+  ua: crawler
+  path: !build [*longPath, '.php']
+  allowed: false
+  mayFail: true
+  message: Path with many repeated wildcards can be processed
+  ifSuccess: WildcardCompress
+  when: _WildcardCompress
+- _defs:
+    - &longRule !build ['/', !repeat ['*/*/*/*/*/*/*/*/*/*/', 100000]]
+    - &longPath !build ['/', !repeat ['1/2/3/4/5/6/7/8/9/0/', 100000]]
+    - &longText !build ['User-agent: *|Disallow: ', *longRule, '*.php']
+  text: *longText
+  ua: crawler
+  path: *longPath
+  allowed: true
+  mayFail: true
+  ifSuccess: _WildcardMany
+  when: WildcardCompress
+- text: *longText
+  ua: crawler
+  path: !build [*longPath, 'long.php']
+  mayFail: true
+  allowed: false
+  message: Path with a lot of wildcards can be processed
+  ifSuccess: WildcardMany
+  when: _WildcardMany
+- text: 'User-agent: *|Disallow: %2a' # *
+  path: /foo
+  allowed: true
+  mayFail: true
+  message: "%2A is treated as a wildcard meta character"
+  ifSuccess: _NoPeDecodeWildcard
+  ifFailed: PeDecodeWildcard
+  when: [Wildcard, _PercentEncoding]
+- text: 'User-agent: *|Disallow: /foo%24' # /foo$
+  path: /foo
+  allowed: true
+  mayFail: true
+  message: "%24 is treated as an end-of-path meta character"
+  ifSuccess: _NoPeDecodeWildcardDollarTrailing
+  ifFailed: PeDecodeWildcardDollarTrailing
+  when: [WildcardDollar, _PercentEncoding]
+- text: 'User-agent: *|Disallow: /fo$o'
+  path: /fo
+  allowed: true
+  mayFail: true
+  message: $ in the middle is treated as an end-of-path meta character
+  ifFailed: WildcardDollarMiddle
+  when: WildcardDollar
+- text: 'User-agent: *|Disallow: /fo%24o' # /fo$o
+  path: /fo
+  allowed: true
+  mayFail: true
+  message: "%24 in the middle is treated as an end-of-path meta character"
+  ifSuccess: _NoPeDecodeWildcardDollarMiddle
+  ifFailed: PeDecodeWildcardDollarMiddle
+  when: [WildcardDollar, _PercentEncoding]
+- always: true
+  when: [_NoPeDecodeWildcard, _NoPeDecodeWildcardDollarTrailing, _NoPeDecodeWildcardDollarMiddle]
+  message: URL encoded meta characters are treated as escaped
+  ifSuccess: PeDecodeNoMeta
+- text: 'User-agent: *|Disallow: /foo%24%24%24' # /foo$$$
+  path: /foo
+  allowed: false
+  mayFail: true
+  message: Multiple %24 are treated as end-of-path meta character
+  ifSuccess: PeDecodeWildcardDollarMultiple
+  when: [WildcardDollar, _PercentEncoding]
+- text: 'User-agent: *|Disallow: /no\$'
+  ua: any
+  path: /no$
+  allowed: true
+  message: Possible internal regex escaping error of $
+  when: Wildcard
+- text: 'User-agent: *|Disallow: /no\$'
+  ua: any
+  path: /no\
+  allowed: false
+  message: Possible internal regex escaping error of $
+  when: Wildcard
+
+# octet value tests
+- text: "User-agent: *|Disallow: /\x00no"
+  path: /
+  allowed: true
+  message: Path comparison is truncated at NUL
+  ifFailed: TruncateAtNul
+- text: "User-agent: *|Disallow: /%00%00no"
+  path: "/\x00%00no"
+  allowed: false
+  message: Handling of bogus rule that contains escaped NUL
+  when: _PercentEncoding
+- text: "User-agent: *|Disallow: /%0d%0anoDisallow:/no"
+  path: "/"
+  allowed: true
+  message: Handling of bogus rule that contains escaped CR/LF
+  when: _PercentEncoding
+- text: "User-agent: *|Disallow: /%0d%0anoDisallow:/no"
+  path: "/\x0d%0a"
+  allowed: true
+  message: Handling of bogus rule that contains escaped CR/LF 2
+  when: _PercentEncoding
+- text: "User-agent: *|Disallow: /%0d%0anoDisallow:/no"
+  path: "/no"
+  allowed: true
+  message: Handling of bogus rule that contains escaped CR/LF
+  when: _PercentEncoding
+- text: "User-agent: *|Disallow: /%0d%0a"
+  path: "/\x0d\x0atest"
+  allowed: false
+  message: Handling of rule that contains CR/LF
+  when: _PercentEncoding
+
+- text: "User-agent: crawler|Disallow: /no \t "
+  ua: crawler
+  path: /no
+  allowed: true
+  mayFail: true
+  message: Handling of trailing spaces in path
+  ifSuccess: KeepPathTrailingSpaces
+  ifFailed: IgnorePathTrailingSpaces
+- text: "User-agent: crawler|Disallow: /no \t "
+  ua: crawler
+  path: "/no \t "
+  allowed: false
+  message: Consistent behavior of trailing spaces in path
+- text: "User-agent: *|Disallow: /no %20 \t%09\t %20 "
+  ua: any
+  path: /no
+  allowed: true
+  when: [IgnorePathTrailingSpaces, _PercentEncoding]
+  ifSuccess: _KeepPathTrailingSpacedOnlyIfEscaped
+  ifFailed: IgnorePathTrailingSpacesEscaped
+- text: "User-agent: *|Disallow: /no %20 \t%09\t %20 "
+  ua: any
+  path: "/no%20 %20%09\t%09%20%20 "
+  allowed: false
+  message: Consistent behavior of trailing spaces in path
+  when: _KeepPathTrailingSpacedOnlyIfEscaped
+- text: 'User-agent: *|Disallow: /no%20%09%20'
+  ua: any
+  path: "/no"
+  allowed: true
+  message: Consistent behavior of trailing spaces in path
+  when: [KeepPathTrailingSpaces, _PercentEncoding]
+- text: 'User-agent: *|Disallow: /no%20%09%20'
+  ua: any
+  path: "/no \t "
+  allowed: false
+  message: Consistent behavior of trailing spaces in path
+  when: [KeepPathTrailingSpaces, _PercentEncoding]
+
+- text: "User-agent: *|Disallow: /%61\x62%63\x31%32\x33"
+  ua: any
+  path: "/\x61%62\x63%31\x32%33"
+  allowed: false
+  message: Escaped alphanumeric
+  when: _PercentEncoding
+
+- _defs:
+    &symbols a!"%23%&')(+,-./:;<=>?@][^_`{|}~\
+  text: !build ['User-agent: *|Disallow: /', !escapeDelim [*symbols]]
+  ua: any
+  path: !build ['/', *symbols]
+  allowed: false
+  message: Processing of symbols including disallowed characters without errors
+  when: _PercentEncoding
+- text: 'User-agent: *|Disallow: /%21%22%23%25%26%27%28%29%2b%2c%2d%2e%2f%3a%3b%3c%3d%3e%3f%40%5b%5c%5d%5e%5f%60%7b%7c%7d%7e'
+  ua: any
+  path: /%21%22
+  allowed: true
+  message: "Escaped # may not be treated as start of comment"
+  when: _PercentEncoding
+- path: /%21%22%23%25%26%27%28%29%2b%2c%2d%2e%2f%3a%3b%3c%3d%3e%3f%40%5b%5c%5d%5e%5f%60%7b%7c%7d%7e
+  allowed: false
+  message: "Escaped # may not be treated as start of comment"
+  when: _PercentEncoding
+- text: 'User-agent: *|Disallow: /foo%23bar'
+  ua: any
+  when: _PercentEncoding
+  expand:
+    - path: /foo
+      allowed: true
+      message: "Escaped # may not be treated as start of comment"
+    - path: '/foo%23bar'
+      allowed: false
+      message: "Escaped # may not be treated as start of comment"
+- text: 'User-agent: *|Disallow: /100%6'
+  ua: any
+  path: /100%65 # /100%e
+  allowed: true
+  message: "%6 is not a partially URL encoded string"
+- path: /100%2565 # /100%65
+  allowed: false
+  message: "%6 is not a partially URL encoded string"
+  when: _PercentEncoding
+- path: /100%6
+  allowed: false
+  message: "%6 is not a partially URL encoded string"
+- path: /100%256 # /100%6
+  allowed: false
+  message: "%6 is not a partially URL encoded string"
+  when: _PercentEncoding
+- text: 'User-agent: *|Disallow: /100%6*'
+  ua: any
+  path: /100%6x
+  allowed: false
+  message: "%6* is not a partially URL encoded string"
+  when: Wildcard
+- path: /100%256x # /100%6x
+  allowed: false
+  message: "%6* is not a partially URL encoded string"
+  when: [Wildcard, _PercentEncoding]
+- text: 'User-agent: *|Disallow: path'
+  ua: any
+  path: /path
+  allowed: false
+  mayFail: true
+  message: Complements leading slash of path rule if one is missing
+  ifSuccess: ComplementLeadingSlash
+
+- text: 'User-agent: *|Disallow: /{{rule}}'
+  ua: any
+  path: '/{{path}}'
+  allowed: true
+  message: "{{rule}} is not the same as {{path}} according to RFC 7230 2.7.3"
+  # Distinction of percent encoded characters which is reserved in RFC 7230 2.7.3 / RFC 3986
+  ifFailed: IgnoreURIReserved
+  when: [_PercentEncoding, -IgnoreURIReserved]
+  variations: [
+    {rule: "%3A", path: ":"},{path: "%3A", rule: ":"},
+    {rule: "%2F", path: "/"},{path: "%2F", rule: "/"},
+    {rule: "%3F", path: "?"},{path: "%3F", rule: "?"},
+    {rule: "%5B", path: "["},{path: "%5B", rule: "["},
+    {rule: "%5D", path: "]"},{path: "%5D", rule: "]"},
+    {rule: "%40", path: "@"},{path: "%40", rule: "@"},
+    {rule: "%21", path: "!"},{path: "%21", rule: "!"},
+    #{rule: "%24", path: "$"},*/{path: "%24", rule: "$"},
+    {rule: "%26", path: "&"},{path: "%26", rule: "&"},
+    {rule: "%27", path: "'"},{path: "%27", rule: "'"},
+    {rule: "%28", path: "("},{path: "%28", rule: "("},
+    {rule: "%29", path: ")"},{path: "%29", rule: ")"},
+    #{rule: "%2A", path: "*"},{path: "%2A", rule: "*"},
+    {rule: "%2B", path: "+"},{path: "%2B", rule: "+"},
+    {rule: "%2C", path: ","},{path: "%2C", rule: ","},
+    {rule: "%3B", path: ";"},{path: "%3B", rule: ";"},
+    {rule: "%3D", path: "="},{path: "%3D", rule: "="},
+  ]
+- text: 'User-agent: *|Disallow: /foo%23bar'
+  ua: any
+  path: '/foo#bar'
+  allowed: false
+  message: "Escaped # may not be treated as start of comment"
+  when: [IgnoreURIReserved, _PercentEncoding]
+- text: 'User-agent: *|Disallow: /foo$' # FIXME: any way to test without using '$'?
+  ua: any
+  path: '/foo#bar'
+  allowed: true
+  mayFail: true
+  message: "Fragment part of URI in test path is removed"
+  ifFailed: IgnoreFragmentInPath
+  when: WildcardDollar
+
+- text: 'UsEr-AgEnT: *|DiSaLlOW: /path'
+  ua: any
+  path: '/path'
+  allowed: false
+  mayFail: true
+  message: "Directives are case-insensitive"
+  ifSuccess: IgnoreDirectiveCase
+
+# TODO: AcceptDirectiveTypo feature to accept useragent as User-agent (Google's possible extension)
+# TODO: static/wildcard match allow/disallow, longer or earlier or allow-first
+# TODO: additional directive tests like Crawl-delay, Sitemap
+
+- text: 'User-agent: *|Disallow: /{{rule}}'
+  ua: any
+  path: '/{{path}}'
+  allowed: '{{allowed}}'
+  message: "Encoding should not be converted"
+  ifFailed: _InputGarbled
+  when: -_InputGarbled
+  variations: [
+    {rule: "%C3%88 lo stesso", path: "%C3%88 lo stesso", allowed: false},
+    {path: "%C3%88 lo stesso", rule: "%C3%88 lo stesso", allowed: false},
+    {rule: "%C8 lo stesso", path: "%C8 lo stesso", allowed: false},
+    {path: "%C8 lo stesso", rule: "%C8 lo stesso", allowed: false},
+    {rule: "%C3%88 lo stesso", path: "%C8 lo stesso", allowed: true},
+    {rule: "%C3%88 lo stesso", path: "%C8 lo stesso", allowed: true},
+    {rule: "\xC3\x88 lo stesso", path: "\xC3\x88 lo stesso", allowed: false},
+    {path: "\xC3\x88 lo stesso", rule: "\xC3\x88 lo stesso", allowed: false},
+    {rule: "\xC8 lo stesso", path: "\xC8 lo stesso", allowed: false},
+    {path: "\xC8 lo stesso", rule: "\xC8 lo stesso", allowed: false},
+    {rule: "\xC3\x88 lo stesso", path: "\xC8 lo stesso", allowed: true},
+    {rule: "\xC3\x88 lo stesso", path: "\xC8 lo stesso", allowed: true},
+    {rule: "%a5%c6%a5%b9%a5%c8", path: "%e3%83%86%e3%82%b9%e3%83%88", allowed: true},
+    {path: "%a5%c6%a5%b9%a5%c8", rule: "%e3%83%86%e3%82%b9%e3%83%88", allowed: true},
+    {rule: "%83%65%83%58%83%67", path: "%e3%83%86%e3%82%b9%e3%83%88", allowed: true},
+    {path: "%83%65%83%58%83%67", rule: "%e3%83%86%e3%82%b9%e3%83%88", allowed: true},
+    {rule: "%a5%c6%a5%b9%a5%c8", path: "%a5%c6%a5%b9%a5%c8", allowed: false},
+    {rule: "%83%65%83%58%83%67", path: "%83%65%83%58%83%67", allowed: false},
+    {rule: "%e3%83%86%e3%82%b9%e3%83%88", path: "%e3%83%86%e3%82%b9%e3%83%88", allowed: false},
+    {rule: "\xa5\xc6\xa5\xb9\xa5\xc8", path: "\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88", allowed: true},
+    {path: "\xa5\xc6\xa5\xb9\xa5\xc8", rule: "\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88", allowed: true},
+    {rule: "\x83\x65\x83\x58\x83\x67", path: "\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88", allowed: true},
+    {path: "\x83\x65\x83\x58\x83\x67", rule: "\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88", allowed: true},
+    {rule: "\xa5\xc6\xa5\xb9\xa5\xc8", path: "\xa5\xc6\xa5\xb9\xa5\xc8", allowed: false},
+    {rule: "\x83\x65\x83\x58\x83\x67", path: "\x83\x65\x83\x58\x83\x67", allowed: false},
+    {rule: "\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88", path: "\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88", allowed: false},
+  ]
+
+# TODO: Unicode BOM test

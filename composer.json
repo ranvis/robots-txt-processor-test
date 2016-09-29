@@ -1,0 +1,31 @@
+{
+	"name": "ranvis/robots-txt-processor-test",
+	"description": "robots.txt processor feature/behavior test.",
+	"keywords": ["robots.txt", "testsuite"],
+	"license": "BSD-2-Clause",
+	"homepage": "https://github.com/ranvis/robots-txt-processor-test/blob/master/README.md",
+	"authors": [
+		{
+			"name": "SATO Kentaro",
+			"email": "kentaro@ranvis.com"
+		}
+	],
+	"autoload": {
+		"psr-4": {
+			"Ranvis\\RobotsTxt\\": "src/"
+		}
+	},
+	"require": {
+		"php": ">=7.0.0",
+		"ext-yaml": ">=2.0.0RC7"
+	},
+	"require-dev": {
+		"bee4/robots.txt": "dev-master",
+		"tomverran/robots-txt-checker": "dev-master",
+		"t1gor/robots-txt-parser": "dev-master",
+		"diggin/diggin-robotrules": "dev-master",
+		"m6web/roboxt": "dev-master",
+		"ranvis/robots-txt-processor": "dev-master"
+	},
+	"minimum-stability": "dev"
+}
