@@ -913,7 +913,7 @@
   allowed: true
   message: "{{rule}} is not the same as {{path}} according to RFC 7230 2.7.3"
   # Distinction of percent encoded characters which is reserved in RFC 7230 2.7.3 / RFC 3986
-  ifFailed: IgnoreURIReserved
+  ifFailed: IgnoreURIReserved # FIXME: should have been IgnoreUriReserved; need to increment testcase version
   when: [_PercentEncoding, -IgnoreURIReserved]
   variations: [
     {rule: "%3A", path: ":"},{path: "%3A", rule: ":"},
