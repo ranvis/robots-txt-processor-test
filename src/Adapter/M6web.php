@@ -6,6 +6,9 @@
 
 namespace Ranvis\RobotsTxt\Adapter;
 
+/**
+ * @deprecated The depending module has been abandoned.
+ */
 class M6web implements AdapterInterface
 {
     private $parser;

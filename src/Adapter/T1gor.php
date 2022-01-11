@@ -6,13 +6,15 @@
 
 namespace Ranvis\RobotsTxt\Adapter;
 
+use t1gor\RobotsTxtParser\RobotsTxtParser;
+
 class T1gor implements AdapterInterface
 {
     private $parser;
 
     public static function isAvailable() : bool
     {
-        return class_exists(\RobotsTxtParser::class);
+        return class_exists(RobotsTxtParser::class);
     }
 
     public function __construct()
@@ -21,7 +23,7 @@ class T1gor implements AdapterInterface
 
     public function setText($text)
     {
-        $this->parser = new \RobotsTxtParser($text);
+        $this->parser = new RobotsTxtParser($text);
     }
 
     public function getPackageName() : string
