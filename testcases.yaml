@@ -185,7 +185,7 @@
   ua: crawler
   path: /yes/no
   allowed: false
-  message: Longer path rule is evaluated earlier then shorter one
+  message: Longer path rule is evaluated earlier than shorter one
   ifSuccess: LongerPathFirst
   when: _IgnoreRuleOrder
 
